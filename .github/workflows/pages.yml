@@ -19,14 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: pnpm install --no-frozen-lockfile
-      - run: pnpm build
+      - run: npm install
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
