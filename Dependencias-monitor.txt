@@ -1,0 +1,5 @@
+Dependencias-monitor
+
+npm create vite@latest my-monitor -- --template react-ts
+cd my-monitor
+npm install recharts lucide-react
