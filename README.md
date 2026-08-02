@@ -10,9 +10,18 @@ O projeto combina uma interface web em React com um agente local responsável po
 - `backend`: API local e canal WebSocket.
 - Agente Python: coleta de CPU, memória, discos, rede, bateria, processos, GPU e sensores disponíveis.
 
-## Estado atual
+## Executar o dashboard
 
-Projeto em fase inicial. Consulte as issues para acompanhar o desenvolvimento.
+```powershell
+pnpm install
+pnpm dev
+```
+
+Sem o agente, o dashboard entra automaticamente em modo demonstração.
+
+## Executar o agente
+
+Consulte [`backend/README.md`](backend/README.md). Depois de iniciado, o dashboard passa a usar as métricas reais via `127.0.0.1:8765`.
 
 ## Segurança
 

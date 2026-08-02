@@ -1,3 +1,9 @@
 {
-  "private": true
+  "name": "monitorhard",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter frontend dev",
+    "build": "pnpm --filter frontend build",
+    "typecheck": "pnpm --filter frontend typecheck"
+  }
 }
