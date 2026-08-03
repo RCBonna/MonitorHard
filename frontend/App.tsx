@@ -137,12 +137,12 @@ export default function App() {
       <section className="detail-strip">
         <article><HardDrive /><div><span>Armazenamento</span><strong>{metrics.disk.usagePercent.toFixed(0)}% ocupado</strong><small>↓ {formatBytes(metrics.disk.readBytesPerSecond)}/s · ↑ {formatBytes(metrics.disk.writeBytesPerSecond)}/s</small></div></article>
         <article><Network /><div><span>Rede</span><strong>↓ {formatBytes(metrics.network.downloadBytesPerSecond)}/s</strong><small>↑ {formatBytes(metrics.network.uploadBytesPerSecond)}/s</small></div></article>
-        <article><BatteryCharging /><div><span>Bateria</span><strong>{metrics.battery ? `${metrics.battery.percent.toFixed(0)}%` : 'Não detectada'}</strong><small>{metrics.battery?.plugged ? 'Conectado à energia' : 'Usando bateria'}</small></div></article>
+        <article className="battery-detail"><BatteryCharging /><div><span>Bateria</span><strong>{metrics.battery ? `${metrics.battery.percent.toFixed(0)}%` : 'Não detectada'}</strong>{metrics.battery && <Meter value={metrics.battery.percent} tone="green" />}<small>{metrics.battery?.plugged ? 'Conectado à energia' : 'Usando bateria'}</small></div></article>
       </section>
 
       <section className="sensor-strip">
-        <article><Gauge /><div><span>GPU</span><strong>{metrics.gpu?.usagePercent != null ? `${metrics.gpu.usagePercent.toFixed(0)}%` : 'Não disponível'}</strong><small>{metrics.gpu?.name ?? 'Intel Iris Xe · sensor não exposto'}</small></div></article>
         <article><Thermometer /><div><span>Armazenamento</span><strong>{metrics.temperatures.storageCelsius != null ? `${metrics.temperatures.storageCelsius.toFixed(0)}°C` : '—'}</strong><small>{metrics.capabilities?.sensorSource ?? 'Aguardando provedor'}</small></div></article>
+        <article><Gauge /><div><span>GPU</span><strong>{metrics.gpu?.usagePercent != null ? `${metrics.gpu.usagePercent.toFixed(0)}%` : 'Não disponível'}</strong><small>{metrics.gpu?.name ?? 'Intel Iris Xe · sensor não exposto'}</small></div></article>
         <article><Fan /><div><span>Ventoinhas</span><strong>{metrics.fans?.length ? `${metrics.fans[0].rpm} RPM` : 'Não expostas'}</strong><small>{metrics.fans?.[0]?.name ?? `${metrics.capabilities?.sensorCount ?? 0} sensores encontrados`}</small></div></article>
       </section>
 
