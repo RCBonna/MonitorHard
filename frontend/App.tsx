@@ -1,11 +1,23 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { Activity, BatteryCharging, Cpu, Database, Fan, Gauge, HardDrive, Network, Thermometer } from 'lucide-react'
+import { Activity, AlertTriangle, BatteryCharging, Cpu, Database, Download, Fan, Gauge, HardDrive, Network, Settings, Thermometer, X } from 'lucide-react'
 import type { Metrics } from './types'
 
 const API_URL = 'http://127.0.0.1:8765/api/v1/status'
 const WS_URL = 'ws://127.0.0.1:8765/api/v1/metrics'
+const PREFERENCES_KEY = 'monitorhard.preferences.v1'
+const MAX_HISTORY_POINTS = 300
+
+type Thresholds = { cpu: number; memory: number; disk: number; battery: number }
+type Alert = { id: keyof Thresholds; label: string; value: number; threshold: number; direction: 'high' | 'low' }
+const DEFAULT_THRESHOLDS: Thresholds = { cpu: 85, memory: 85, disk: 90, battery: 20 }
 
 const clamp = (value: number) => Math.min(100, Math.max(0, value))
+const loadThresholds = (): Thresholds => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? '{}') as Partial<Thresholds>
+    return Object.fromEntries(Object.entries(DEFAULT_THRESHOLDS).map(([key, fallback]) => [key, clamp(Number(saved[key as keyof Thresholds] ?? fallback))])) as Thresholds
+  } catch { return DEFAULT_THRESHOLDS }
+}
 const formatBytes = (bytes: number) => {
   if (!bytes) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
@@ -78,7 +90,11 @@ function History({ values }: { values: number[] }) {
 export default function App() {
   const [metrics, setMetrics] = useState<Metrics>(() => demoMetrics())
   const [connected, setConnected] = useState(false)
-  const [history, setHistory] = useState<number[]>(() => Array(30).fill(28))
+  const [history, setHistory] = useState<number[]>(() => [])
+  const [thresholds, setThresholds] = useState<Thresholds>(loadThresholds)
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const activeAlertIds = useRef<Set<keyof Thresholds>>(new Set())
   const demoTimer = useRef<number | null>(null)
 
   useEffect(() => {
@@ -104,15 +120,60 @@ export default function App() {
     return () => { cancelled = true; socket?.close(); if (demoTimer.current) window.clearInterval(demoTimer.current) }
   }, [])
 
-  useEffect(() => setHistory((current) => [...current.slice(-39), metrics.cpu.usagePercent]), [metrics.cpu.usagePercent])
+  useEffect(() => setHistory((current) => [...current.slice(-(MAX_HISTORY_POINTS - 1)), metrics.cpu.usagePercent]), [metrics.timestamp, metrics.cpu.usagePercent])
+  useEffect(() => localStorage.setItem(PREFERENCES_KEY, JSON.stringify(thresholds)), [thresholds])
+  useEffect(() => {
+    const candidates: Alert[] = [
+      { id: 'cpu', label: 'CPU', value: metrics.cpu.usagePercent, threshold: thresholds.cpu, direction: 'high' },
+      { id: 'memory', label: 'Memória', value: metrics.memory.usagePercent, threshold: thresholds.memory, direction: 'high' },
+      { id: 'disk', label: 'Armazenamento', value: metrics.disk.usagePercent, threshold: thresholds.disk, direction: 'high' },
+      ...(metrics.battery && !metrics.battery.plugged ? [{ id: 'battery' as const, label: 'Bateria', value: metrics.battery.percent, threshold: thresholds.battery, direction: 'low' as const }] : []),
+    ]
+    const next = candidates.filter((alert) => {
+      const wasActive = activeAlertIds.current.has(alert.id)
+      return alert.direction === 'high'
+        ? alert.value >= alert.threshold - (wasActive ? 5 : 0)
+        : alert.value <= alert.threshold + (wasActive ? 5 : 0)
+    })
+    activeAlertIds.current = new Set(next.map((alert) => alert.id))
+    setAlerts(next)
+  }, [metrics, thresholds])
   const uptime = useMemo(() => `${Math.floor(metrics.uptimeSeconds / 86400)}d ${Math.floor((metrics.uptimeSeconds % 86400) / 3600)}h`, [metrics.uptimeSeconds])
+
+  const updateThreshold = (key: keyof Thresholds, value: number) => setThresholds((current) => ({ ...current, [key]: clamp(value) }))
+  const exportDiagnostics = () => {
+    const { hostname: _hostname, ...anonymousMetrics } = metrics
+    const payload = { exportedAt: new Date().toISOString(), metrics: anonymousMetrics, thresholds, history: { cpuPercent: history } }
+    const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `monitorhard-diagnostico-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <main className="shell">
       <header>
         <div className="brand"><span><Activity size={18} /></span><div><strong>MonitorHard</strong><small>{metrics.hostname}</small></div></div>
-        <div className={`status ${connected ? 'online' : ''}`}><i />{connected ? 'Agente conectado' : 'Modo demonstração'}</div>
+        <div className="header-actions">
+          <div className={`status ${connected ? 'online' : ''}`}><i />{connected ? 'Agente conectado' : 'Modo demonstração'}</div>
+          <button className="icon-button" type="button" onClick={() => setSettingsOpen((open) => !open)} aria-expanded={settingsOpen} aria-controls="preferences" aria-label={settingsOpen ? 'Fechar preferências' : 'Abrir preferências'}>{settingsOpen ? <X /> : <Settings />}</button>
+        </div>
       </header>
+
+      {settingsOpen && <section className="preferences" id="preferences">
+        <div className="preferences-heading"><div><strong>Limites de alerta</strong><span>Os valores ficam salvos somente neste navegador.</span></div><button type="button" className="export-button" onClick={exportDiagnostics}><Download /> Exportar diagnóstico</button></div>
+        <div className="threshold-grid">
+          {([
+            ['cpu', 'CPU alta'], ['memory', 'Memória alta'], ['disk', 'Disco cheio'], ['battery', 'Bateria baixa'],
+          ] as [keyof Thresholds, string][]).map(([key, label]) => <label key={key}><span>{label}</span><div><input type="number" min="0" max="100" value={thresholds[key]} onChange={(event) => updateThreshold(key, Number(event.target.value))} /><b>%</b></div></label>)}
+        </div>
+      </section>}
+
+      {alerts.length > 0 && <section className="alerts" aria-live="polite">
+        {alerts.map((alert) => <div className="alert" key={alert.id}><AlertTriangle /><div><strong>{alert.label} {alert.direction === 'high' ? 'acima' : 'abaixo'} do limite</strong><span>Agora em {alert.value.toFixed(0)}% · alerta configurado em {alert.threshold}%</span></div></div>)}
+      </section>}
 
       <section className="intro">
         <div><p>Visão geral</p><h1>Seu notebook, agora.</h1><span>Atualizado {new Date(metrics.timestamp).toLocaleTimeString('pt-BR')} · ligado há {uptime}</span></div>
@@ -123,7 +184,7 @@ export default function App() {
         <article className="cpu-panel">
           <div className="panel-heading"><span><Cpu /> Processador</span><strong>{metrics.cpu.usagePercent.toFixed(0)}%</strong></div>
           <History values={history} />
-          <div className="cpu-meta"><span>{metrics.cpu.cores.length} núcleos lógicos</span><span>{metrics.cpu.frequencyMhz ? `${(metrics.cpu.frequencyMhz / 1000).toFixed(2)} GHz` : 'Frequência indisponível'}</span></div>
+          <div className="cpu-meta"><span>{metrics.cpu.cores.length} núcleos lógicos · histórico de 5 min</span><span>{metrics.cpu.frequencyMhz ? `${(metrics.cpu.frequencyMhz / 1000).toFixed(2)} GHz` : 'Frequência indisponível'}</span></div>
           <div className="core-grid">{metrics.cpu.cores.map((core, index) => <div key={index}><span>{index + 1}</span><Meter value={core} /></div>)}</div>
         </article>
 
