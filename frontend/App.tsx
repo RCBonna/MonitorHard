@@ -38,8 +38,41 @@ function Meter({ value, tone = 'blue' }: { value: number; tone?: 'blue' | 'orang
 }
 
 function History({ values }: { values: number[] }) {
-  const points = values.map((value, index) => `${(index / Math.max(1, values.length - 1)) * 100},${44 - value * 0.38}`).join(' ')
-  return <svg className="history" viewBox="0 0 100 48" preserveAspectRatio="none" aria-hidden="true"><polyline points={points} /></svg>
+  const points = values.map((value, index) => ({
+    x: (index / Math.max(1, values.length - 1)) * 100,
+    y: 44 - clamp(value) * 0.38,
+  }))
+  const path = points.reduce((result, point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`
+    const previous = points[index - 1]
+    const before = points[Math.max(0, index - 2)]
+    const after = points[Math.min(points.length - 1, index + 1)]
+    const tension = 0.18
+    const control1 = {
+      x: previous.x + (point.x - before.x) * tension,
+      y: previous.y + (point.y - before.y) * tension,
+    }
+    const control2 = {
+      x: point.x - (after.x - previous.x) * tension,
+      y: point.y - (after.y - previous.y) * tension,
+    }
+    return `${result} C ${control1.x} ${control1.y}, ${control2.x} ${control2.y}, ${point.x} ${point.y}`
+  }, '')
+  const guides = [25, 50, 75, 100]
+
+  return (
+    <div className="history-wrap">
+      <svg className="history" viewBox="0 0 100 48" preserveAspectRatio="none" role="img" aria-label="Histórico de utilização da CPU com referências em 25, 50, 75 e 100 por cento">
+        <g className="history-guides">
+          {guides.map((guide) => <line key={guide} x1="0" x2="100" y1={44 - guide * 0.38} y2={44 - guide * 0.38} />)}
+        </g>
+        <path className="history-line" d={path} />
+      </svg>
+      <div className="history-labels" aria-hidden="true">
+        {guides.map((guide) => <span key={guide} style={{ bottom: `${8.33 + guide * 0.792}%` }}>{guide}%</span>)}
+      </div>
+    </div>
+  )
 }
 
 export default function App() {
