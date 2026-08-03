@@ -58,11 +58,11 @@ function History({ values }: { values: number[] }) {
     }
     return `${result} C ${control1.x} ${control1.y}, ${control2.x} ${control2.y}, ${point.x} ${point.y}`
   }, '')
-  const guides = [25, 50, 75, 100]
+  const guides = [0, 25, 50, 75, 100]
 
   return (
     <div className="history-wrap">
-      <svg className="history" viewBox="0 0 100 48" preserveAspectRatio="none" role="img" aria-label="Histórico de utilização da CPU com referências em 25, 50, 75 e 100 por cento">
+      <svg className="history" viewBox="0 0 100 48" preserveAspectRatio="none" role="img" aria-label="Histórico de utilização da CPU com referências em 0, 25, 50, 75 e 100 por cento">
         <g className="history-guides">
           {guides.map((guide) => <line key={guide} x1="0" x2="100" y1={44 - guide * 0.38} y2={44 - guide * 0.38} />)}
         </g>
