@@ -9,6 +9,7 @@ __pycache__/
 .idea/
 .vscode/
 *.log
+*.tsbuildinfo
 MonitorHard.zip
 backend/sensors/bin/
 backend/sensors/obj/
