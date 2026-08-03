@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { Activity, BatteryCharging, Cpu, Database, HardDrive, Network, Thermometer } from 'lucide-react'
+import { Activity, BatteryCharging, Cpu, Database, Fan, Gauge, HardDrive, Network, Thermometer } from 'lucide-react'
 import type { Metrics } from './types'
 
 const API_URL = 'http://127.0.0.1:8765/api/v1/status'
@@ -26,7 +26,10 @@ function demoMetrics(): Metrics {
     disk: { usagePercent: 63, readBytesPerSecond: wave(2, 8, 12) * 1024 ** 2, writeBytesPerSecond: wave(4, 4, 6) * 1024 ** 2 },
     network: { downloadBytesPerSecond: wave(3, 9, 11) * 1024 ** 2, uploadBytesPerSecond: wave(5, 2, 2.5) * 1024 ** 2 },
     battery: { percent: 78, plugged: true, secondsLeft: null },
-    temperatures: { cpuCelsius: wave(0, 4, 61), gpuCelsius: wave(2, 3, 54) },
+    temperatures: { cpuCelsius: wave(0, 4, 61), gpuCelsius: wave(2, 3, 54), storageCelsius: 42 },
+    gpu: { name: 'GPU de demonstração', usagePercent: wave(2, 15, 22), memoryUsedMb: 680, memoryTotalMb: 2048, temperatureCelsius: wave(2, 3, 54) },
+    fans: [{ name: 'Ventoinha principal', rpm: 2250, source: 'Demonstração' }],
+    capabilities: { hardwareSensors: true, sensorSource: 'Demonstração', sensorCount: 18, sensorError: null },
   }
 }
 
@@ -102,6 +105,12 @@ export default function App() {
         <article><HardDrive /><div><span>Armazenamento</span><strong>{metrics.disk.usagePercent.toFixed(0)}% ocupado</strong><small>↓ {formatBytes(metrics.disk.readBytesPerSecond)}/s · ↑ {formatBytes(metrics.disk.writeBytesPerSecond)}/s</small></div></article>
         <article><Network /><div><span>Rede</span><strong>↓ {formatBytes(metrics.network.downloadBytesPerSecond)}/s</strong><small>↑ {formatBytes(metrics.network.uploadBytesPerSecond)}/s</small></div></article>
         <article><BatteryCharging /><div><span>Bateria</span><strong>{metrics.battery ? `${metrics.battery.percent.toFixed(0)}%` : 'Não detectada'}</strong><small>{metrics.battery?.plugged ? 'Conectado à energia' : 'Usando bateria'}</small></div></article>
+      </section>
+
+      <section className="sensor-strip">
+        <article><Gauge /><div><span>GPU</span><strong>{metrics.gpu?.usagePercent != null ? `${metrics.gpu.usagePercent.toFixed(0)}%` : 'Não disponível'}</strong><small>{metrics.gpu?.name ?? 'Intel Iris Xe · sensor não exposto'}</small></div></article>
+        <article><Thermometer /><div><span>Armazenamento</span><strong>{metrics.temperatures.storageCelsius != null ? `${metrics.temperatures.storageCelsius.toFixed(0)}°C` : '—'}</strong><small>{metrics.capabilities?.sensorSource ?? 'Aguardando provedor'}</small></div></article>
+        <article><Fan /><div><span>Ventoinhas</span><strong>{metrics.fans?.length ? `${metrics.fans[0].rpm} RPM` : 'Não expostas'}</strong><small>{metrics.fans?.[0]?.name ?? `${metrics.capabilities?.sensorCount ?? 0} sensores encontrados`}</small></div></article>
       </section>
 
       {!connected && <aside><strong>Dados de demonstração</strong><span>Inicie o agente local para visualizar as métricas reais deste notebook.</span></aside>}

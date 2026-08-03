@@ -9,6 +9,7 @@ from pathlib import Path
 import psutil
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from sensor_provider import provider
 
 app = FastAPI(title="MonitorHard Agent", version="0.1.0")
 app.add_middleware(
@@ -36,6 +37,7 @@ def collect_metrics() -> dict:
     battery = psutil.sensors_battery()
     frequency = psutil.cpu_freq()
 
+    hardware = provider.snapshot()
     result = {
         "protocolVersion": 1,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -57,7 +59,15 @@ def collect_metrics() -> dict:
             "uploadBytesPerSecond": _rate(net_now.bytes_sent, _last_io["net"].bytes_sent, elapsed),
         },
         "battery": None if battery is None else {"percent": battery.percent, "plugged": battery.power_plugged, "secondsLeft": battery.secsleft if battery.secsleft >= 0 else None},
-        "temperatures": {"cpuCelsius": None, "gpuCelsius": None},
+        "temperatures": hardware["temperatures"],
+        "gpu": hardware["gpu"],
+        "fans": hardware["fans"],
+        "capabilities": {
+            "hardwareSensors": hardware["available"],
+            "sensorSource": hardware["source"],
+            "sensorCount": hardware["sensorCount"],
+            "sensorError": hardware["error"],
+        },
     }
     _last_io.update(at=now, disk=disk_now, net=net_now)
     return result

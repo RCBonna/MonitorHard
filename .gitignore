@@ -10,3 +10,5 @@ __pycache__/
 .vscode/
 *.log
 MonitorHard.zip
+backend/sensors/bin/
+backend/sensors/obj/
