@@ -171,10 +171,6 @@ export default function App() {
         </div>
       </section>}
 
-      {alerts.length > 0 && <section className="alerts" aria-live="polite">
-        {alerts.map((alert) => <div className="alert" key={alert.id}><AlertTriangle /><div><strong>{alert.label} {alert.direction === 'high' ? 'acima' : 'abaixo'} do limite</strong><span>Agora em {alert.value.toFixed(0)}% · alerta configurado em {alert.threshold}%</span></div></div>)}
-      </section>}
-
       <section className="intro">
         <div><p>Visão geral</p><h1>Seu notebook, agora.</h1><span>Atualizado {new Date(metrics.timestamp).toLocaleTimeString('pt-BR')} · ligado há {uptime}</span></div>
         <div className="temperature"><Thermometer /><span>CPU</span><strong>{metrics.temperatures.cpuCelsius?.toFixed(0) ?? '—'}°</strong></div>
@@ -208,6 +204,10 @@ export default function App() {
       </section>
 
       {!connected && <aside><strong>Dados de demonstração</strong><span>Inicie o agente local para visualizar as métricas reais deste notebook.</span></aside>}
+
+      {alerts.length > 0 && <section className="alerts" aria-live="polite">
+        {alerts.map((alert) => <div className="alert" key={alert.id}><AlertTriangle /><div><strong>{alert.label} {alert.direction === 'high' ? 'acima' : 'abaixo'} do limite</strong><span>Agora em {alert.value.toFixed(0)}% · alerta configurado em {alert.threshold}%</span></div></div>)}
+      </section>}
     </main>
   )
 }
