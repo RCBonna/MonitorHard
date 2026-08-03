@@ -2,8 +2,9 @@ export type Metrics = {
   protocolVersion: 1
   timestamp: string
   hostname: string
+  device?: { manufacturer: string | null; model: string | null; operatingSystem: string }
   uptimeSeconds: number
-  cpu: { usagePercent: number; frequencyMhz: number | null; cores: number[] }
+  cpu: { name?: string | null; nominalFrequencyMhz?: number | null; usagePercent: number; frequencyMhz: number | null; cores: number[] }
   memory: { usagePercent: number; usedBytes: number; totalBytes: number }
   disk: { usagePercent: number; readBytesPerSecond: number; writeBytesPerSecond: number }
   network: { downloadBytesPerSecond: number; uploadBytesPerSecond: number }

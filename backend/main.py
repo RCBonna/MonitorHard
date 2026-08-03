@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import platform
 import socket
 import time
 from datetime import datetime, timezone
@@ -10,6 +11,27 @@ import psutil
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sensor_provider import provider
+
+try:
+    import winreg
+except ImportError:
+    winreg = None
+
+
+def _registry_value(path: str, name: str) -> str | int | None:
+    if winreg is None:
+        return None
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path) as key:
+            return winreg.QueryValueEx(key, name)[0]
+    except OSError:
+        return None
+
+
+_cpu_name = _registry_value(r"HARDWARE\DESCRIPTION\System\CentralProcessor\0", "ProcessorNameString")
+_cpu_nominal_mhz = _registry_value(r"HARDWARE\DESCRIPTION\System\CentralProcessor\0", "~MHz")
+_device_manufacturer = _registry_value(r"HARDWARE\DESCRIPTION\System\BIOS", "SystemManufacturer")
+_device_model = _registry_value(r"HARDWARE\DESCRIPTION\System\BIOS", "SystemProductName")
 
 app = FastAPI(title="MonitorHard Agent", version="0.1.0")
 app.add_middleware(
@@ -42,8 +64,15 @@ def collect_metrics() -> dict:
         "protocolVersion": 1,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "hostname": socket.gethostname(),
+        "device": {
+            "manufacturer": _device_manufacturer,
+            "model": _device_model,
+            "operatingSystem": platform.system(),
+        },
         "uptimeSeconds": int(time.time() - psutil.boot_time()),
         "cpu": {
+            "name": _cpu_name or platform.processor() or None,
+            "nominalFrequencyMhz": _cpu_nominal_mhz,
             "usagePercent": psutil.cpu_percent(interval=None),
             "frequencyMhz": frequency.current if frequency else None,
             "cores": psutil.cpu_percent(interval=None, percpu=True),

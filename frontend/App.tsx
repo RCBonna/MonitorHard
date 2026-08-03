@@ -32,8 +32,9 @@ function demoMetrics(): Metrics {
     protocolVersion: 1,
     timestamp: new Date().toISOString(),
     hostname: 'NOTEBOOK-DEMO',
+    device: { manufacturer: 'Fabricante', model: 'Notebook de demonstração', operatingSystem: 'Windows' },
     uptimeSeconds: 152403,
-    cpu: { usagePercent: wave(0, 12, 34), frequencyMhz: 3280, cores: Array.from({ length: 8 }, (_, i) => wave(i, 18, 30)) },
+    cpu: { name: '11th Gen Intel Core i5-1135G7', nominalFrequencyMhz: 2400, usagePercent: wave(0, 12, 34), frequencyMhz: 3280, cores: Array.from({ length: 8 }, (_, i) => wave(i, 18, 30)) },
     memory: { usagePercent: wave(1, 2, 58), usedBytes: 9.3 * 1024 ** 3, totalBytes: 16 * 1024 ** 3 },
     disk: { usagePercent: 63, readBytesPerSecond: wave(2, 8, 12) * 1024 ** 2, writeBytesPerSecond: wave(4, 4, 6) * 1024 ** 2 },
     network: { downloadBytesPerSecond: wave(3, 9, 11) * 1024 ** 2, uploadBytesPerSecond: wave(5, 2, 2.5) * 1024 ** 2 },
@@ -172,7 +173,7 @@ export default function App() {
       </section>}
 
       <section className="intro">
-        <div><p>Visão geral</p><h1>Seu notebook, agora.</h1><span>Atualizado {new Date(metrics.timestamp).toLocaleTimeString('pt-BR')} · ligado há {uptime}</span></div>
+        <div><h1>Seu notebook, agora.</h1><strong className="device-summary">{[metrics.device?.manufacturer, metrics.device?.model, metrics.cpu.name].filter(Boolean).join(' · ') || 'Informações do equipamento indisponíveis'}</strong><span>Atualizado {new Date(metrics.timestamp).toLocaleTimeString('pt-BR')} · ligado há {uptime}</span></div>
         <div className="temperature"><Thermometer /><span>CPU</span><strong>{metrics.temperatures.cpuCelsius?.toFixed(0) ?? '—'}°</strong></div>
       </section>
 
